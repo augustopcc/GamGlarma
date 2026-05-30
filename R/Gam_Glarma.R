@@ -37,7 +37,6 @@ Gam_Glarma <- function(
     sen_cos = c(),
     tendencia = F,
     impulso = 0,
-    passo = F,
     n_passos = 0,
     tol_passo = 1e-1,
     patience = 3,
@@ -162,7 +161,6 @@ Gam_Glarma <- function(
     sen_cos = sen_cos,
     tendencia = tendencia,
     impulso = impulso,
-    passo = passo,
     n_passos = n_passos,
     tol_passo = tol_passo
   )
