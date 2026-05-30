@@ -13,3 +13,5 @@ Imports:
     changepoint,
     forecast,
     splines
+URL: https://github.com/augustopcc/GamGlarma
+BugReports: https://github.com/augustopcc/GamGlarma/issues
