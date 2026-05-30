@@ -4,3 +4,10 @@
 .httr-oauth
 .DS_Store
 .quarto
+*.pdf
+*.csv
+*.xlsx
+*.RData
+*.rds
+Rascunhos/
+Fwd_ Dados/
