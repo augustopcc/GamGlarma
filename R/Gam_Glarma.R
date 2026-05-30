@@ -29,6 +29,7 @@ Gam_Glarma <- function(
     alpha = 1,
     maxit = 30,
     grad = 2.22e-16,
+    ## Informações para construção do rpeditor
     n_spline = 0,
     auto_spline = F,
     spline_cols = NULL,
@@ -41,7 +42,10 @@ Gam_Glarma <- function(
     tol_passo = 1e-1,
     patience = 3,
     tol_aic_imp = 1e-8,
-    trace = FALSE
+    trace = FALSE,
+    ## Informações da TS
+    ts_start = NULL,
+    ts_frequency = NULL
 ) {
 
   # Captura a chamada original
@@ -127,7 +131,20 @@ Gam_Glarma <- function(
     ts_start <- start(y_raw)
     ts_end   <- end(y_raw)
     ts_freq  <- frequency(y_raw)
-  } else {
+  }
+
+  if (!is.null(ts_start) && !is.null(ts_frequency)) {
+    # forneceu os marcos temporais manualmente através dos novos argumentos.
+    is_ts_y  <- TRUE
+
+    # a data final (ts_end) exata sozinho com base no tamanho do vetor.
+    y_ts_temp <- ts(y_raw, start = ts_start, frequency = ts_frequency)
+
+    ts_start <- start(y_ts_temp)
+    ts_end   <- end(y_ts_temp)
+    ts_freq  <- frequency(y_ts_temp)
+
+  }else {
     ts_start <- NULL
     ts_end   <- NULL
     ts_freq  <- NULL
@@ -476,7 +493,7 @@ Gam_Glarma <- function(
     ind_tendencia= tendencia,
     ind_sen_cos = length(sen_cos) > 0,
     ind_impulso = impulso > 0 ,
-    ind_passo = passo,
+    ind_passo = length(n_passos) > 0,
     sen_cos = sen_cos,                               # O vetor numérico de ondas (ex: c(6, 12))
     Formula_spline = Preditor$Formula_spline,        # As réguas matemáticas (ns)
     variaveis_lineares = setdiff(colnames(X_in), names(Preditor$Formula_spline)),

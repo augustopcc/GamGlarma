@@ -1,3 +1,4 @@
+#' @export
 Build_Preditor <- function(Y_in,
                            X_in,
                            n_spline = FALSE,

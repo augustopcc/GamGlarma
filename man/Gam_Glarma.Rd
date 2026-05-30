@@ -29,7 +29,6 @@ Gam_Glarma(
   sen_cos = c(),
   tendencia = F,
   impulso = 0,
-  passo = F,
   n_passos = 0,
   tol_passo = 0.1,
   patience = 3,
