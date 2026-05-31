@@ -33,7 +33,9 @@ Gam_Glarma(
   tol_passo = 0.1,
   patience = 3,
   tol_aic_imp = 1e-08,
-  trace = FALSE
+  trace = FALSE,
+  ts_start = NULL,
+  ts_frequency = NULL
 )
 }
 \arguments{
