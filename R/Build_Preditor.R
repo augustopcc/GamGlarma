@@ -1,3 +1,52 @@
+#' @title Construtor da Matriz de Desenho (Preditor Linear)
+#'
+#' @description
+#' Esta função processa as variáveis explicativas e constrói a matriz de desenho final (\code{X})
+#' incorporando efeitos lineares, suavizações não-lineares (Splines), componentes sazonais
+#' trigonométricos (Seno e Cosseno), tendência determinística e variáveis de intervenção
+#' detetadas automaticamente (Passos e Impulsos).
+#'
+#' Embora seja o motor interno da função \code{Gam_Glarma}, pode ser utilizada de forma
+#' independente para engenharia de variáveis (Feature Engineering) em análises de séries temporais.
+#'
+#' @param X_in Matriz ou data.frame contendo as covariáveis originais lineares.
+#' @param y Vetor numérico da variável resposta (utilizado pelo algoritmo para detetar os pontos exatos de intervenção de Passos e Impulsos).
+#' @param n_spline Inteiro. Graus de liberdade (número de nós) para as splines. Se for 0, nenhuma transformação é aplicada.
+#' @param spline_cols Vetor de caracteres ou índices indicando quais colunas de \code{X_in} receberão a transformação spline.
+#' @param grau_spline Inteiro. Grau do polinômio da spline. Valores >= 3 ativam \code{Natural Cubic Splines} (mais suaves). Valores < 3 ativam \code{B-Splines} (maior variabilidade local).
+#' @param sen_cos Vetor numérico indicando os ciclos sazonais a serem criados (ex: \code{c(6, 12)} para semestral e anual).
+#' @param tendencia Lógico. Se \code{TRUE}, adiciona uma coluna de tendência linear baseada no tempo.
+#' @param impulso Inteiro. Número de choques/picos atípicos (outliers) a serem detetados e incorporados como variáveis dummy no modelo.
+#' @param passo Lógico. Se \code{TRUE}, ativa a deteção de quebras de nível (degraus/mudanças de patamar).
+#' @param n_passos Inteiro. Número máximo de quebras de nível estruturais a serem procuradas na série.
+#' @param tol_passo Numérico. Limite de tolerância para a deteção dos passos.
+#'
+#' @return Uma lista estruturada contendo:
+#' \itemize{
+#'   \item \strong{\code{X_out}}: A matriz de desenho completa e expandida, pronta para estimação estatística.
+#'   \item \strong{\code{Formula_spline}}: Uma lista com as funções de base históricas das splines geradas (essencial para projetar novos dados na função \code{predict}).
+#'   \item \strong{Indicadores}: Lógicos internos (\code{ind_spline}, \code{ind_impulso}, etc.) mapeando quais transformações foram ativadas.
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Exemplo de uso independente para Engenharia de Variáveis
+#' X_base <- matrix(rnorm(100), ncol = 1)
+#' colnames(X_base) <- "Temperatura"
+#' Y_obs <- rpois(100, lambda = 5)
+#'
+#' matriz_expandida <- Build_Preditor(
+#'   X_in = X_base,
+#'   y = Y_obs,
+#'   n_spline = 3,
+#'   spline_cols = "Temperatura",
+#'   sen_cos = c(12),
+#'   impulso = 1
+#' )
+#'
+#' head(matriz_expandida$X_out)
+#' }
+#'
 #' @export
 Build_Preditor <- function(Y_in,
                            X_in,
@@ -9,8 +58,6 @@ Build_Preditor <- function(Y_in,
                            passo = F,    # Define se vai criar o passo
                            n_passos = 0,   #permite escolher quantos passos sera identificados
                            tol_passo = 1e-1) {
-
-  require("changepoint") #para a função passo
 
   X_in <- as.matrix(X_in)
   n <- nrow(X_in)

@@ -1,17 +1,56 @@
-#' Ajuste de Modelos GAM-GLARMA
+#' @title Ajuste de Modelos GAM-GLARMA (Generalized Additive Models  GLARMA)
 #'
-#' @description GamGlarma é usado para ajustar modelos Glarmas com ou sem partes aditivas, fornecendo os preditores lineares, os coeficientes arma e a descrição dos resíduos.
+#' @description
+#' Ajusta Modelos Lineares Generalizados Autorregressivos de Médias Móveis (GLARMA) com
+#' suporte estendido para preditores não-lineares aditivos (Splines), componentes sazonais
+#' e intervenções estruturais (Choques e Degraus). A função permite modelar séries temporais
+#' de contagem ou contínuas assimétricas (ex: Poisson, Gamma) lidando simultaneamente com
+#' autocorrelação, variabilidade não-linear e anomalias locais.
 #'
-#' @param formula Um objeto da classe \code{formula} (ex: \code{y ~ x1 + x2}).
-#' @param data Um \code{data.frame} opcional contendo as variáveis.
-#' @param type Distribuição da família exponencial ("Poisson", "Normal", "Gamma").
-#' @param link Função de ligação ("log", "identity", "inverse").
-#' @param n_spline Número de graus de liberdade para as splines.
-#' @param auto_spline Lógico. Se TRUE, busca o melhor grau de spline (1 a 5) baseado no AIC.
-#' @param passo Lógico. Se TRUE, utiliza o pacote changepoint para detectar quebras de média.
+#' @param formula Objeto da classe \code{formula} (ex: \code{y ~ x1 + x2}). Se a resposta for um objeto \code{ts}, a função extrai automaticamente os metadados temporais.
+#' @param data Um \code{data.frame} opcional contendo as variáveis descritas na fórmula.
+#' @param offset Vetor numérico opcional com tamanho igual à variável resposta para ser adicionado ao preditor linear. Padrão é \code{NULL}.
+#' @param type Caractere. A distribuição de probabilidade a ser ajustada (ex: \code{"Poisson"}, \code{"Gamma"}).
+#' @param link Caractere. A função de ligação associada (ex: \code{"log"}, \code{"inverse"}, \code{"identity"}).
+#' @param method Caractere. O método de otimização a ser utilizado. Padrão é \code{"FS"} (Fisher Scoring).
+#' @param residuals Caractere. O tipo de resíduo que alimenta o processo recursivo ARMA. Padrão é \code{"Score"}.
 #'
-#' @return Uma lista da classe \code{gamglarma} contendo coeficientes, deviance, AIC e a série latente Z.
+#' @param phiLags Vetor numérico contendo as defasagens (lags) para a parte Autorregressiva (AR) do estado latente. Padrão é \code{NULL}.
+#' @param thetaLags Vetor numérico contendo as defasagens (lags) para a parte de Médias Móveis (MA). Padrão é \code{NULL}.
+#' @param phiInit Vetor de valores iniciais para os parâmetros \code{phi}. Se \code{NULL}, valores padrão são gerados.
+#' @param thetaInit Vetor de valores iniciais para os parâmetros \code{theta}. Se \code{NULL}, valores padrão são gerados.
+#' @param beta Vetor numérico contendo valores iniciais para os coeficientes fixos da regressão.
+#' @param alphaInit Valor inicial numérico para a estimação do parâmetro de dispersão (forma) em distribuições como a Gamma.
+#' @param alpha Valor numérico base para o parâmetro de dispersão, caso seja fixado. Padrão é \code{1}.
+#'
+#' @param maxit Inteiro. Número máximo de iterações permitidas para a convergência do algoritmo IRLS/Otimização. Padrão é \code{30}.
+#' @param grad Numérico. Critério de tolerância do gradiente para atestar a convergência da otimização. Padrão é \code{2.22e-16}.
+#' @param patience Inteiro. Número de iterações consecutivas sem melhoria necessária para ativar paradas antecipadas (Early Stopping). Padrão é \code{3}.
+#' @param tol_aic_imp Numérico. Diferença mínima exigida de melhoria no AIC para aceitar a adição de um novo impulso. Padrão é \code{1e-8}.
+#' @param trace Lógico. Se \code{TRUE}, exibe mensagens sobre o progresso e passos da iteração na consola. Padrão é \code{FALSE}.
+#'
+#' @param n_spline Inteiro. Graus de liberdade base para a geração das curvas Spline.
+#' @param auto_spline Lógico. Se \code{TRUE}, a função executa uma busca iterativa minimizando o AIC para descobrir o \code{n_spline} ideal.
+#' @param spline_cols Vetor de caracteres com os nomes das colunas numéricas que receberão suavização não-linear (Splines).
+#' @param nos_spline Inteiro. Limite máximo ou teto para a busca do número de nós na rotina automática de splines.
+#' @param grau_spline Inteiro. O grau do polinómio da Spline. Valores \code{>= 3} forçam \code{Natural Cubic Splines} (alta suavidade). Valores \code{< 3} usam \code{B-Splines} para capturar mais variabilidade.
+#'
+#' @param sen_cos Vetor numérico especificando períodos para construir componentes trigonométricas de Sazonalidade (ex: \code{c(6, 12)} para semestral e anual).
+#' @param tendencia Lógico. Se \code{TRUE}, adiciona automaticamente uma variável determinística linear de tendência do tempo 1 até n.
+#' @param impulso Inteiro. O número de choques extremos (outliers/picos) que a função deve procurar iterativamente e modelar.
+#' @param n_passos Inteiro. Número máximo de quebras estruturais de nível (passos/degraus) a procurar na série via algoritmo de Changepoint.
+#' @param tol_passo Numérico. Valor de penalização/tolerância para confirmar a validade estatística de um passo. Padrão é \code{1e-1}.
+#'
+#' @param ts_start Vetor ou numérico especificando o início do calendário da série temporal (ex: \code{c(2007, 1)}).
+#' @param ts_frequency Inteiro. Frequência da série temporal para indexação (ex: \code{12} para dados mensais).
+#'
+#' @return Um objeto da classe \code{gamglarma} contendo as estimativas dos parâmetros (\code{delta}), os valores ajustados (\code{fitted.values}), resíduos, metadados temporais e matrizes do modelo necessárias para a previsão.
+#'
+#' @seealso \code{\link{predict.gamglarma}}, \code{\link{summary.gamglarma}}, \code{\link{plotAjuste}}, \code{\link{plotResiduos}}
+#'
 #' @export
+#' @importFrom graphics abline hist legend lines par
+#' @importFrom stats Box.test Gamma acf dgamma dnorm end frequency gaussian glm glm.fit logLik model.matrix model.offset model.response pacf pchisq pnorm poisson predict printCoefmat sd shapiro.test spline start time ts
 Gam_Glarma <- function(
     formula,            # Primeiro argumento passa a ser a fórmula
     data = NULL,        # Segundo argumento passa a ser o data.frame

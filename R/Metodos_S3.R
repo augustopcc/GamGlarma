@@ -1,4 +1,4 @@
-
+#' @exportS3Method
 summary.gamglarma <-function(object, ...) {
   # 1. Matriz de Coeficientes Total
   coefs <- object$delta
@@ -62,6 +62,7 @@ summary.gamglarma <-function(object, ...) {
 }
 
 # Função para imprimir o summary de forma bonita
+#' @exportS3Method
 print.summary.gamglarma <- function(x, ...) {
   cat("\nCall: \n", paste(deparse(x$call), sep = "\n", collapse = "\n"), "\n\n", sep = "")
 
@@ -116,59 +117,8 @@ print.summary.gamglarma <- function(x, ...) {
   }
 }
 
-#' @export
-plotAjuste <- function(modelo = NULL){
-  if (is.null(modelo) || is.null(modelo$residuals)) {
-    stop("Forneça um modelo válido que contenha 'fitted.values'.")
-  }
 
-  real   <- modelo$y
-  ajuste <- modelo$fitted.values
-  n      <- length(real)
-
-  if (isTRUE(modelo$is_ts_y)) {
-    # Reconstrói a indexação de tempo através dos metadados guardados
-    y_ts_temp <- ts(real, start = modelo$ts_start, frequency = modelo$ts_freq)
-    x <- as.numeric(time(y_ts_temp))
-    label_x <- "Tempo"
-  } else {
-    x <- 1:n
-    label_x <- "Índice"
-  }
-  oldpar <- par(no.readonly = TRUE)
-
-  # 3. Define a disposição dos gráficos com margens otimizadas (evita erros de tamanho)
-
-  par(mfrow = c(1, 1), mar = c(4, 4, 3, 2))
-
-  ylim_range <- range(c(real, ajuste), na.rm = TRUE)
-
-  plot(x, real,
-                  type = "l",
-                  col = "black",
-                  lwd = 1.5,
-                  ylim = ylim_range,
-                  main = "Ajuste do Modelo no Tempo",
-                  xlab = label_x,
-                  ylab = "Variável Resposta (Y)")
-
-  # Adiciona a linha do modelo estimado
-  lines(x, ajuste, col = "blue", lwd = 1.5)
-
-  # Adiciona legenda limpa sem borda indesejada
-  legend("topright",
-         legend = c("Real", "Ajustado"),
-         col = c("black", "blue"),
-         lty = 1,
-         lwd = 1.5,
-         bty = "n")
-
-  on.exit(par(oldpar))
-
-  invisible(modelo)
-}
-
-
+#' @exportS3Method
 print.gamglarma <- function(x, ...) {
   cat("\nCall:  ", paste(deparse(x$call), sep = "\n", collapse = "\n"), "\n\n", sep = "")
 
@@ -187,92 +137,8 @@ print.gamglarma <- function(x, ...) {
 }
 
 
-#função do plot residuos
-#' @export
-plotResiduos <- function(modelo = NULL) {
-  if (is.null(modelo) || is.null(modelo$residuals)) {
-    stop("Forneça um modelo válido que contenha 'residuals'.")
-  }
 
-  oldpar <- par(no.readonly = TRUE)
-
-  par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
-
-  residuos <-  modelo$residuals
-
-  if (!is.null(modelo$y) && inherits(modelo$y, "ts")) {
-    eixo_x <- as.numeric(time(modelo$y))
-    label_x <- "Tempo"
-  } else {
-    eixo_x <- seq_along(residuos)
-    label_x <- "Índice"
-  }
-
-  plot(
-    y = residuos,
-    x = eixo_x,
-    type = "p",# "p" para pontos (padrão)
-    pch = 16,# Preenchimento dos pontos (bolinhas sólidas)
-    col = "black",# Cor dos pontos
-    main = "Resíduos",
-    xlab = label_x,
-    ylab = ""
-  )
-  abline(
-    h = 0,# h indica linha horizontal, posicionada no y = 0
-    col = "red",
-    lwd = 1,# Espessura da linha
-    lty = 2# Tipo da linha (2 = tracejada))
-  )
-  hist(residuos)
-  abline(
-    v = 0,# h indica linha horizontal, posicionada no y = 0
-    col = "red",
-    lwd = 1,
-    lty = 2,
-    main = "Histograma"
-  )
-  acf(residuos, main = "ACF", ylab = "")
-  pacf(residuos, main = "PACF", ylab = "")
-
-
-  on.exit(par(oldpar))
-
-  ### Printa os testes###
-
-  teste_bp <- Box.test(residuos, lag = 12, type = "Box-Pierce")
-  cat("Teste de Box-Pierce (Independência / Lag = 12):\n")
-  cat(sprintf(" Estatística X-squared = %.4f | p-valor = %.4f\n",
-              teste_bp$statistic, teste_bp$p.value))
-
-  # Teste de Normalidade de Shapiro-Wilk
-  # Usamos try() caso todos os resíduos sejam iguais ou N seja muito grande/pequeno
-  sw_test <- try(shapiro.test(residuos), silent = TRUE)
-  cat("\nTeste de Shapiro-Wilk (Normalidade):\n")
-  if (!inherits(sw_test, "try-error")) {
-    cat(sprintf(" Estatística W = %.4f | p-valor = %.4f\n",
-                sw_test$statistic, sw_test$p.value))
-  } else {
-    cat(" (Não foi possível calcular o teste de normalidade pelo Shapiro Wilk)\n")
-  }
-
-  ### Verifica Outlier ###
-  res_padronizados <- as.numeric(scale(residuos))
-
-  idx_outliers <- which(abs(res_padronizados) > 3)
-
-  if (length(idx_outliers) > 0) {
-    cat(sprintf(" Foram encontrados %d ponto(s) com desvio maior que %d desvios padrões.\n",
-                length(idx_outliers), 3))
-    cat(" Índice(s) na série temporal: ", paste(idx_outliers, collapse = ", "), "\n")
-    cat(sprintf("\n Recomenda-se adicionar %d 'impulso' para melhor ajuste.",
-                length(idx_outliers)))
-  }
-
-}
-
-
-#' @export
+#' @exportS3Method
 predict.gamglarma <- function(object,n.ahead = 0, novos_dados = NULL, ...){
 
 
