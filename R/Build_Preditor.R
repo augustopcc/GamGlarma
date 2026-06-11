@@ -107,6 +107,8 @@ Build_Preditor <- function(Y_in,
         # Cria a base da spline
         B_j <- splines::ns(dados_x,
                            df = n_spline)
+      
+        B_j <- scale(B_j, center= TRUE, scale = FALSE)
 
         colnames(B_j) <- paste0(nome_original, "_s", seq_len(ncol(B_j)))
 
